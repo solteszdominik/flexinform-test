@@ -1,1 +1,57 @@
-<p>search-form works!</p>
+<form class="search" [formGroup]="form" (ngSubmit)="submit()">
+  <div class="row">
+    <label>
+      Client name
+      <input type="text" [formControl]="nameCtrl" placeholder="e.g. Smith" />
+    </label>
+
+    <label>
+      Document ID
+      <input type="text" [formControl]="cardCtrl" placeholder="numbers only" />
+    </label>
+
+    <div class="actions">
+      <button type="submit" [disabled]="loading">SEARCH</button>
+      <button type="button" class="secondary" (click)="reset()">Reset</button>
+    </div>
+  </div>
+
+  @if (form.touched && form.errors?.['oneRequired']) {
+    <div class="error">Either client name or document ID must be provided.</div>
+  }
+
+  @if (form.touched && form.errors?.['onlyOneAllowed']) {
+    <div class="error">Please fill in only one field (name OR document ID).</div>
+  }
+
+  @if (cardCtrl.touched && cardCtrl.errors?.['pattern']) {
+    <div class="error">Document ID must contain digits only.</div>
+  }
+
+  @if (apiError) {
+    <div class="error">{{ apiError }}</div>
+  }
+
+  @if (noHitError) {
+    <div class="error">{{ noHitError }}</div>
+  }
+
+  @if (multiHitError) {
+    <div class="error">{{ multiHitError }}</div>
+  }
+
+  @if (result; as r) {
+    <div class="result">
+      <h3>Search result</h3>
+      <div><strong>ID:</strong> {{ r.id }}</div>
+      <div><strong>Name:</strong> {{ r.name }}</div>
+      <div><strong>Document ID:</strong> {{ r.card_number }}</div>
+      <div><strong>Cars:</strong> {{ r.car_count }}</div>
+      <div><strong>Total service logs:</strong> {{ r.service_count }}</div>
+    </div>
+  }
+
+  @if (loading) {
+    <div class="muted">Searching…</div>
+  }
+</form>

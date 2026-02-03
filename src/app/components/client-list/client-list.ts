@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { map } from 'rxjs/operators';
 import { Observable } from 'rxjs';
@@ -15,6 +15,7 @@ import { Client } from '../../models/client.model';
 })
 export class ClientList implements OnInit {
   clients$!: Observable<Client[]>;
+  @Output() clientSelected = new EventEmitter<Client>();
 
   constructor(private api: ApiService) {}
 
@@ -23,6 +24,6 @@ export class ClientList implements OnInit {
   }
 
   selectClient(c: Client): void {
-    console.log('selected client', c);
+    this.clientSelected.emit(c);
   }
 }

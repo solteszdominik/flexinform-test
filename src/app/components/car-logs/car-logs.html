@@ -1,1 +1,18 @@
-<p>car-logs works!</p>
+@if (logs$ | async; as logs) {
+  <div class="logs">
+    <h4>Service log</h4>
+
+    @if (logs.length === 0) {
+      <div class="muted">No service logs.</div>
+    } @else {
+      <ul>
+        @for (l of logs; track l.id) {
+          <li>
+            <strong>#{{ l.lognumber }}</strong>
+            — {{ l.event }} — {{ displayEventTime(l) }} — document: {{ l.document_id }}
+          </li>
+        }
+      </ul>
+    }
+  </div>
+}

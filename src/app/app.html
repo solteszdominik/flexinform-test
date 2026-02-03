@@ -1,0 +1,30 @@
+<app-search-form (found)="onSearchFound($event)"></app-search-form>
+<app-client-list (clientSelected)="onClientSelected($event)"></app-client-list>
+
+@if (selectedClient(); as c) {
+  <div class="panel">
+    <h2>
+      {{ c.name }} <span class="muted">({{ c.card_number }})</span>
+    </h2>
+
+    <app-client-cars
+      [clientId]="c.id"
+      [autoSelectFirst]="autoOpenFirstCar()"
+      (carSelected)="onCarSelected($event)"
+    ></app-client-cars>
+
+    @if (selectedCar(); as car) {
+      <div class="panel">
+        <h3>
+          {{ car.car_id }} <span class="muted"> {{ car.type }}</span>
+        </h3>
+
+        <app-car-logs
+          [clientId]="c.id"
+          [carId]="car.car_id"
+          [registered]="car.registered"
+        ></app-car-logs>
+      </div>
+    }
+  </div>
+}

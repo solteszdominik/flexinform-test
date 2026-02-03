@@ -1,1 +1,19 @@
-<p>client-cars works!</p>
+@if (cars$ | async; as cars) {
+  <div class="cars">
+    <h3>Cars</h3>
+
+    @if (cars.length === 0) {
+      <div class="muted">No cars.</div>
+    } @else {
+      <ul>
+        @for (car of cars; track car.id) {
+          <li>
+            <button type="button" (click)="selectCar(car)">{{ car.car_id }}</button>
+            — {{ car.type }} — Registered: {{ car.registered }} — Own brand:
+            {{ car.ownbrand ? 'yes' : 'no' }} — Accidents: {{ car.accidents }}
+          </li>
+        }
+      </ul>
+    }
+  </div>
+}

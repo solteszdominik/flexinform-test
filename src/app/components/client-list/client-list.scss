@@ -1,0 +1,28 @@
+ul {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0;
+}
+li {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.02);
+  margin-bottom: 10px;
+}
+
+button {
+  cursor: pointer;
+  border: 0;
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.08);
+  color: inherit;
+}
+
+button:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
