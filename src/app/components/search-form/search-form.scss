@@ -42,13 +42,13 @@ button {
   color: inherit;
 }
 
+button.secondary {
+  background: rgba(255, 255, 255, 0.05);
+}
+
 button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-}
-
-button.secondary {
-  background: rgba(255, 255, 255, 0.05);
 }
 
 .error {

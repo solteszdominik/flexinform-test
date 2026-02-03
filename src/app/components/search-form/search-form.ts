@@ -1,118 +1,152 @@
-import { Component, EventEmitter, Output, OnInit } from '@angular/core';
+import { Component, EventEmitter, Output } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import {
   FormBuilder,
-  ReactiveFormsModule,
-  Validators,
-  AbstractControl,
-  ValidationErrors,
-  FormGroup,
   FormControl,
+  FormGroup,
+  ReactiveFormsModule,
+  ValidationErrors,
+  Validators,
 } from '@angular/forms';
 import { ApiService } from '../../services/api.service';
-import { ClientSearchResult } from '../../models/client-search.model';
-import { CommonModule } from '@angular/common';
+import { ClientSearchRequest, ClientSearchResult } from '../../models/client-search.model';
 
-function xorValidator(group: AbstractControl): ValidationErrors | null {
-  const name = group.get('name')?.value?.toString().trim();
-  const card = group.get('card_number')?.value?.toString().trim();
+type SearchFormModel = {
+  name: FormControl<string>;
+  card_number: FormControl<string>;
+};
 
-  const nameFilled = !!name;
-  const cardFilled = !!card;
+function xorGroupValidator(group: FormGroup): ValidationErrors | null {
+  const name = group.get('name')?.value?.toString().trim() ?? '';
+  const card = group.get('card_number')?.value?.toString().trim() ?? '';
 
-  if (!nameFilled && !cardFilled) return { oneRequired: true };
-  if (nameFilled && cardFilled) return { onlyOneAllowed: true };
+  const hasName = name.length > 0;
+  const hasCard = card.length > 0;
+
+  if (!hasName && !hasCard) return { oneRequired: true };
+  if (hasName && hasCard) return { onlyOneAllowed: true };
   return null;
 }
 
 @Component({
   selector: 'app-search-form',
   standalone: true,
-  imports: [ReactiveFormsModule, CommonModule],
+  imports: [CommonModule, ReactiveFormsModule],
   templateUrl: './search-form.html',
   styleUrl: './search-form.scss',
 })
-export class SearchForm implements OnInit {
+export class SearchForm {
   @Output() found = new EventEmitter<ClientSearchResult>();
 
-  form!: FormGroup;
+  form: FormGroup<SearchFormModel>;
 
   loading = false;
+
+  // UI feedback
+  formError: string | null = null;
   apiError: string | null = null;
-  noHitError: string | null = null;
-  multiHitError: string | null = null;
   result: ClientSearchResult | null = null;
 
   constructor(
     private fb: FormBuilder,
     private api: ApiService,
-  ) {}
-
-  ngOnInit(): void {
-    this.form = this.fb.group(
+  ) {
+    this.form = this.fb.group<SearchFormModel>(
       {
-        name: [''],
-        card_number: ['', [Validators.pattern(/^\d*$/)]],
+        name: this.fb.nonNullable.control('', []),
+        card_number: this.fb.nonNullable.control('', [
+          Validators.pattern(/^\d*$/), // digits only (empty allowed)
+        ]),
       },
-      { validators: xorValidator },
+      { validators: xorGroupValidator as any },
     );
   }
 
-  get nameCtrl(): FormControl {
-    return this.form.get('name') as FormControl;
+  // typed getters for template
+  get nameCtrl() {
+    return this.form.controls.name;
   }
 
-  get cardCtrl(): FormControl {
-    return this.form.get('card_number') as FormControl;
-  }
-
-  submit(): void {
-    this.apiError = this.noHitError = this.multiHitError = null;
-    this.result = null;
-
-    this.form.markAllAsTouched();
-    if (this.form.invalid) return;
-
-    const name = this.nameCtrl.value?.toString().trim();
-    const card = this.cardCtrl.value?.toString().trim();
-
-    const body = name ? { name } : { card_number: card };
-
-    this.loading = true;
-
-    this.api.searchClientSafe(body).subscribe({
-      next: (res) => {
-        this.loading = false;
-
-        if (!res || res.length === 0) {
-          this.noHitError = 'No results found.';
-          return;
-        }
-
-        if (name && res.length > 1) {
-          this.multiHitError = `Multiple results found (${res.length}). Please refine the name.`;
-          return;
-        }
-
-        const hit = res?.[0];
-        if (!hit) {
-          this.noHitError = 'No results found.';
-          return;
-        }
-
-        this.result = hit;
-        this.found.emit(hit);
-      },
-
-      error: () => {
-        this.loading = false;
-        this.apiError = 'An error occurred while searching. Please try again.';
-      },
-    });
+  get cardCtrl() {
+    return this.form.controls.card_number;
   }
 
   reset(): void {
     this.form.reset({ name: '', card_number: '' });
-    this.apiError = this.noHitError = this.multiHitError = null;
+    this.formError = null;
+    this.apiError = null;
     this.result = null;
+    this.loading = false;
+  }
+
+  submit(): void {
+    this.formError = null;
+    this.apiError = null;
+    this.result = null;
+
+    this.form.markAllAsTouched();
+
+    // 1) client-side validation (feladat szerint)
+    if (this.form.errors?.['oneRequired']) {
+      this.formError = 'Please provide either client name OR document ID.';
+      return;
+    }
+    if (this.form.errors?.['onlyOneAllowed']) {
+      this.formError = 'Please fill only one field (name OR document ID), not both.';
+      return;
+    }
+    if (this.cardCtrl.errors?.['pattern']) {
+      this.formError = 'Document ID must contain digits only.';
+      return;
+    }
+
+    const name = this.nameCtrl.value.trim();
+    const card = this.cardCtrl.value.trim();
+
+    const body: ClientSearchRequest = name ? { name } : { card_number: card };
+
+    this.loading = true;
+
+    // 2) search (no page reload)
+    // Ha nálad más metódus neve van, itt írd át:
+    // - searchClientSafe
+    // - vagy simán searchClient
+    this.api.searchClient(body).subscribe({
+      next: (res) => {
+        this.loading = false;
+
+        const list = Array.isArray(res) ? res : [];
+
+        if (list.length === 0) {
+          this.apiError = 'No results found.';
+          return;
+        }
+
+        if (name && list.length > 1) {
+          this.apiError = `Multiple results found (${list.length}). Please refine the name.`;
+          return;
+        }
+
+        // Document ID: only exact match accepted → enforce single
+        if (card && list.length > 1) {
+          this.apiError = `Multiple results found (${list.length}). This is not allowed for document ID search.`;
+          return;
+        }
+
+        const hit = list[0];
+        if (!hit || hit.id == null) {
+          this.apiError = 'Search returned an invalid result.';
+          return;
+        }
+
+        this.result = hit;
+        this.found.emit(hit); // ✅ never undefined
+      },
+      error: (err) => {
+        this.loading = false;
+        this.apiError = 'An error occurred while searching. Please try again.';
+        console.error(err);
+      },
+    });
   }
 }

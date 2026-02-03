@@ -2,7 +2,7 @@
   <div class="row">
     <label>
       Client name
-      <input type="text" [formControl]="nameCtrl" placeholder="e.g. Smith" />
+      <input type="text" [formControl]="nameCtrl" placeholder="e.g. Adrian" />
     </label>
 
     <label>
@@ -12,31 +12,16 @@
 
     <div class="actions">
       <button type="submit" [disabled]="loading">SEARCH</button>
+      <button type="button" class="secondary" (click)="reset()">Reset</button>
     </div>
   </div>
 
-  @if (form.touched && form.errors?.['oneRequired']) {
-    <div class="error">Either client name or document ID must be provided.</div>
-  }
-
-  @if (form.touched && form.errors?.['onlyOneAllowed']) {
-    <div class="error">Please fill in only one field (name OR document ID).</div>
-  }
-
-  @if (cardCtrl.touched && cardCtrl.errors?.['pattern']) {
-    <div class="error">Document ID must contain digits only.</div>
+  @if (formError) {
+    <div class="error">{{ formError }}</div>
   }
 
   @if (apiError) {
     <div class="error">{{ apiError }}</div>
-  }
-
-  @if (noHitError) {
-    <div class="error">{{ noHitError }}</div>
-  }
-
-  @if (multiHitError) {
-    <div class="error">{{ multiHitError }}</div>
   }
 
   @if (result; as r) {
