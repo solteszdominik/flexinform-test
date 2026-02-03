@@ -11,20 +11,20 @@
     </label>
 
     <div class="actions">
-      <button type="submit" [disabled]="loading">SEARCH</button>
+      <button type="submit" [disabled]="loading()">SEARCH</button>
       <button type="button" class="secondary" (click)="reset()">Reset</button>
     </div>
   </div>
 
-  @if (formError) {
-    <div class="error">{{ formError }}</div>
+  @if (formError()) {
+    <div class="error">{{ formError() }}</div>
   }
 
-  @if (apiError) {
-    <div class="error">{{ apiError }}</div>
+  @if (apiError()) {
+    <div class="error">{{ apiError() }}</div>
   }
 
-  @if (result; as r) {
+  @if (result(); as r) {
     <div class="result">
       <h3>Search result</h3>
       <div><strong>ID:</strong> {{ r.id }}</div>
@@ -35,7 +35,7 @@
     </div>
   }
 
-  @if (loading) {
+  @if (loading()) {
     <div class="muted">Searching…</div>
   }
 </form>

@@ -87,7 +87,6 @@ export class ApiService {
   }
 
   private searchClientFallback(req: ClientSearchRequest): Observable<ClientSearchResult[]> {
-    // Conservative page cap to avoid endless requests if the backend grows.
     const perPage = 50;
     const maxPages = 20;
     const pages = Array.from({ length: maxPages }, (_, i) => i + 1);

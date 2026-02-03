@@ -1,8 +1,13 @@
-import { Component, OnInit, Output, EventEmitter, Input } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  OnInit,
+  output,
+  input,
+  inject,
+  signal,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { map } from 'rxjs/operators';
-import { Observable } from 'rxjs';
-
 import { ApiService } from '../../services/api.service';
 import { Client } from '../../models/client.model';
 import { Car } from '../../models/car.model';
@@ -15,19 +20,23 @@ import { CarLogs } from '../car-logs/car-logs';
   imports: [CommonModule, ClientCars, CarLogs],
   templateUrl: './client-list.html',
   styleUrl: './client-list.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ClientList implements OnInit {
-  clients$!: Observable<Client[]>;
-  @Input() selectedClient: Client | null = null;
-  @Input() selectedCar: Car | null = null;
+  private api = inject(ApiService);
 
-  @Output() clientSelected = new EventEmitter<Client>();
-  @Output() carSelected = new EventEmitter<Car>();
+  selectedClient = input<Client | null>(null);
+  selectedCar = input<Car | null>(null);
 
-  constructor(private api: ApiService) {}
+  clientSelected = output<Client>();
+  carSelected = output<Car>();
+
+  clients = signal<Client[]>([]);
 
   ngOnInit(): void {
-    this.clients$ = this.api.getClients().pipe(map((res) => res.data));
+    this.api.getClients().subscribe((res) => {
+      this.clients.set(res.data);
+    });
   }
 
   selectClient(c: Client): void {

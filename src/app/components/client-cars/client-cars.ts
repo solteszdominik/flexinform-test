@@ -1,5 +1,12 @@
-import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges } from '@angular/core';
-import { Observable, tap } from 'rxjs';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  effect,
+  inject,
+  input,
+  output,
+  signal,
+} from '@angular/core';
 
 import { ApiService } from '../../services/api.service';
 import { Car } from '../../models/car.model';
@@ -11,56 +18,35 @@ import { CommonModule } from '@angular/common';
   imports: [CommonModule],
   templateUrl: './client-cars.html',
   styleUrl: './client-cars.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class ClientCars implements OnChanges {
-  @Input({ required: true }) clientId!: number;
-  @Input() autoSelectFirst = false;
+export class ClientCars {
+  private api = inject(ApiService);
 
-  @Output() carSelected = new EventEmitter<Car>();
+  clientId = input.required<number>();
+  autoSelectFirst = input(false);
 
-  cars$?: Observable<Car[]>;
+  carSelected = output<Car>();
 
-  // cache, hogy auto-select tudjon futni akkor is, ha csak a flag változik
-  private lastCars: Car[] = [];
+  cars = signal<Car[]>([]);
+  private didAutoSelectForClientId = signal<number | null>(null);
 
-  // egyszer fusson le clientenként
-  private didAutoSelectForClientId: number | null = null;
+  constructor() {
+    effect(() => {
+      const id = this.clientId();
 
-  constructor(private api: ApiService) {}
+      this.cars.set([]);
+      this.didAutoSelectForClientId.set(null);
 
-  ngOnChanges(changes: SimpleChanges): void {
-    // 1) ha clientId változik: töltsük újra az autókat
-    if (changes['clientId'] && this.clientId) {
-      this.lastCars = [];
-      this.didAutoSelectForClientId = null;
+      this.api.getClientCars(id).subscribe((cars) => {
+        this.cars.set(cars);
 
-      this.cars$ = this.api.getClientCars(this.clientId).pipe(
-        tap((cars) => {
-          this.lastCars = cars;
-
-          if (
-            this.autoSelectFirst &&
-            cars.length > 0 &&
-            this.didAutoSelectForClientId !== this.clientId
-          ) {
-            this.didAutoSelectForClientId = this.clientId;
-            this.selectCar(cars[0]);
-          }
-        }),
-      );
-      return;
-    }
-
-    if (changes['autoSelectFirst'] && this.autoSelectFirst) {
-      if (
-        this.clientId &&
-        this.lastCars.length > 0 &&
-        this.didAutoSelectForClientId !== this.clientId
-      ) {
-        this.didAutoSelectForClientId = this.clientId;
-        this.selectCar(this.lastCars[0]);
-      }
-    }
+        if (this.autoSelectFirst() && cars.length > 0 && this.didAutoSelectForClientId() !== id) {
+          this.didAutoSelectForClientId.set(id);
+          this.selectCar(cars[0]);
+        }
+      });
+    });
   }
 
   selectCar(car: Car): void {

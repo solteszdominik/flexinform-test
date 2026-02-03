@@ -1,5 +1,5 @@
 <ul class="client-list">
-  @for (c of clients$ | async; track c.id) {
+  @for (c of clients(); track c.id) {
     <li class="client-card">
       <button class="client-header" type="button" (click)="clientSelected.emit(c)">
         <span class="left">
@@ -10,18 +10,18 @@
         <span class="muted">Document ID: {{ c.card_number }}</span>
       </button>
 
-      @if (selectedClient?.id === c.id) {
+      @if (selectedClient()?.id === c.id) {
         <div class="client-expand">
           <app-client-cars
             [clientId]="c.id"
             (carSelected)="carSelected.emit($event)"
           ></app-client-cars>
 
-          @if (selectedCar) {
+          @if (selectedCar()) {
             <app-car-logs
               [clientId]="c.id"
-              [carId]="selectedCar.car_id"
-              [registered]="selectedCar.registered"
+              [carId]="selectedCar()!.car_id"
+              [registered]="selectedCar()!.registered"
             ></app-car-logs>
           }
         </div>

@@ -1,32 +1,15 @@
-import { Component, EventEmitter, Output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import {
-  FormBuilder,
-  FormControl,
-  FormGroup,
-  ReactiveFormsModule,
-  ValidationErrors,
-  Validators,
-} from '@angular/forms';
+import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ApiService } from '../../services/api.service';
 import { ClientSearchRequest, ClientSearchResult } from '../../models/client-search.model';
+import { xorGroupValidator } from '../../validators/xor-group.validator';
+import { VALIDATION_MESSAGES } from '../../constants/validation-messages';
 
 type SearchFormModel = {
   name: FormControl<string>;
   card_number: FormControl<string>;
 };
-
-function xorGroupValidator(group: FormGroup): ValidationErrors | null {
-  const name = group.get('name')?.value?.toString().trim() ?? '';
-  const card = group.get('card_number')?.value?.toString().trim() ?? '';
-
-  const hasName = name.length > 0;
-  const hasCard = card.length > 0;
-
-  if (!hasName && !hasCard) return { oneRequired: true };
-  if (hasName && hasCard) return { onlyOneAllowed: true };
-  return null;
-}
 
 @Component({
   selector: 'app-search-form',
@@ -34,33 +17,28 @@ function xorGroupValidator(group: FormGroup): ValidationErrors | null {
   imports: [CommonModule, ReactiveFormsModule],
   templateUrl: './search-form.html',
   styleUrl: './search-form.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SearchForm {
-  @Output() found = new EventEmitter<ClientSearchResult>();
+  private api = inject(ApiService);
 
-  form: FormGroup<SearchFormModel>;
+  found = output<ClientSearchResult>();
 
-  loading = false;
+  form = new FormGroup<SearchFormModel>(
+    {
+      name: new FormControl('', { nonNullable: true }),
+      card_number: new FormControl('', {
+        nonNullable: true,
+        validators: [Validators.pattern(/^\d*$/)],
+      }),
+    },
+    { validators: xorGroupValidator },
+  );
 
-  // UI feedback
-  formError: string | null = null;
-  apiError: string | null = null;
-  result: ClientSearchResult | null = null;
-
-  constructor(
-    private fb: FormBuilder,
-    private api: ApiService,
-  ) {
-    this.form = this.fb.group<SearchFormModel>(
-      {
-        name: this.fb.nonNullable.control('', []),
-        card_number: this.fb.nonNullable.control('', [
-          Validators.pattern(/^\d*$/), // digits only (empty allowed)
-        ]),
-      },
-      { validators: xorGroupValidator as any },
-    );
-  }
+  loading = signal(false);
+  formError = signal<string | null>(null);
+  apiError = signal<string | null>(null);
+  result = signal<ClientSearchResult | null>(null);
 
   // typed getters for template
   get nameCtrl() {
@@ -73,30 +51,29 @@ export class SearchForm {
 
   reset(): void {
     this.form.reset({ name: '', card_number: '' });
-    this.formError = null;
-    this.apiError = null;
-    this.result = null;
-    this.loading = false;
+    this.formError.set(null);
+    this.apiError.set(null);
+    this.result.set(null);
+    this.loading.set(false);
   }
 
   submit(): void {
-    this.formError = null;
-    this.apiError = null;
-    this.result = null;
+    this.formError.set(null);
+    this.apiError.set(null);
+    this.result.set(null);
 
     this.form.markAllAsTouched();
 
-    // 1) client-side validation (feladat szerint)
     if (this.form.errors?.['oneRequired']) {
-      this.formError = 'Please provide either client name OR document ID.';
+      this.formError.set(VALIDATION_MESSAGES.oneRequired);
       return;
     }
     if (this.form.errors?.['onlyOneAllowed']) {
-      this.formError = 'Please fill only one field (name OR document ID), not both.';
+      this.formError.set(VALIDATION_MESSAGES.onlyOneAllowed);
       return;
     }
     if (this.cardCtrl.errors?.['pattern']) {
-      this.formError = 'Document ID must contain digits only.';
+      this.formError.set(VALIDATION_MESSAGES.pattern);
       return;
     }
 
@@ -105,46 +82,50 @@ export class SearchForm {
 
     const body: ClientSearchRequest = name ? { name } : { card_number: card };
 
-    this.loading = true;
+    this.loading.set(true);
 
-    // 2) search (no page reload)
-    // Ha nálad más metódus neve van, itt írd át:
-    // - searchClientSafe
-    // - vagy simán searchClient
     this.api.searchClient(body).subscribe({
       next: (res) => {
-        this.loading = false;
+        this.loading.set(false);
 
-        const list = Array.isArray(res) ? res : [];
+        const list = Array.isArray(res) ? res : [res];
 
-        if (list.length === 0) {
-          this.apiError = 'No results found.';
+        if (list.length === 0 || !list[0]) {
+          this.apiError.set(VALIDATION_MESSAGES.noResults);
           return;
         }
 
         if (name && list.length > 1) {
-          this.apiError = `Multiple results found (${list.length}). Please refine the name.`;
+          this.apiError.set(
+            `${VALIDATION_MESSAGES.multipleResults} (${list.length}). Please refine the name.`,
+          );
           return;
         }
 
-        // Document ID: only exact match accepted → enforce single
         if (card && list.length > 1) {
-          this.apiError = `Multiple results found (${list.length}). This is not allowed for document ID search.`;
+          this.apiError.set(
+            `${VALIDATION_MESSAGES.multipleResults} (${list.length}). This is not allowed for document ID search.`,
+          );
           return;
         }
 
         const hit = list[0];
         if (!hit || hit.id == null) {
-          this.apiError = 'Search returned an invalid result.';
+          this.apiError.set(VALIDATION_MESSAGES.invalidResult);
           return;
         }
 
-        this.result = hit;
-        this.found.emit(hit); // ✅ never undefined
+        this.result.set(hit);
+        this.found.emit(hit);
       },
       error: (err) => {
-        this.loading = false;
-        this.apiError = 'An error occurred while searching. Please try again.';
+        this.loading.set(false);
+
+        if (err?.error?.error) {
+          this.apiError.set(err.error.error);
+        } else {
+          this.apiError.set(VALIDATION_MESSAGES.genericError);
+        }
         console.error(err);
       },
     });
