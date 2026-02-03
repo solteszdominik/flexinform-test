@@ -1,0 +1,8 @@
+<ul>
+  <li *ngFor="let c of clients$ | async">
+    <button type="button" (click)="selectClient(c)">
+      {{ c.name }}
+    </button>
+    — {{ c.card_number }} (id: {{ c.id }})
+  </li>
+</ul>
