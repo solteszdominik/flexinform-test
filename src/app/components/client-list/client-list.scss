@@ -26,3 +26,65 @@ button {
 button:hover {
   background: rgba(255, 255, 255, 0.14);
 }
+
+.client-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.client-card {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  margin-bottom: 12px;
+  overflow: hidden;
+}
+
+.client-header {
+  width: 100%;
+  padding: 14px 16px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 0;
+  color: inherit;
+  display: flex;
+  justify-content: space-between;
+  cursor: pointer;
+}
+
+.client-header:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.client-expand {
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.2);
+  animation: expand 0.2s ease-out;
+}
+
+@keyframes expand {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.left {
+  display: inline-flex;
+  gap: 10px;
+  align-items: baseline;
+}
+
+.muted {
+  opacity: 0.7;
+}
+
+.id {
+  opacity: 0.65;
+  font-size: 12px;
+}
+.name {
+  font-weight: 600;
+}

@@ -1,10 +1,31 @@
-<ul>
+<ul class="client-list">
   @for (c of clients$ | async; track c.id) {
-    <li>
-      <button type="button" (click)="selectClient(c)">
-        {{ c.name }}
+    <li class="client-card">
+      <button class="client-header" type="button" (click)="clientSelected.emit(c)">
+        <span class="left">
+          <span class="name">{{ c.name }}</span>
+          <span class="id">#{{ c.id }}</span>
+        </span>
+
+        <span class="muted">ID number: {{ c.card_number }}</span>
       </button>
-      — {{ c.card_number }} (id: {{ c.id }})
+
+      @if (selectedClient?.id === c.id) {
+        <div class="client-expand">
+          <app-client-cars
+            [clientId]="c.id"
+            (carSelected)="carSelected.emit($event)"
+          ></app-client-cars>
+
+          @if (selectedCar) {
+            <app-car-logs
+              [clientId]="c.id"
+              [carId]="selectedCar.car_id"
+              [registered]="selectedCar.registered"
+            ></app-car-logs>
+          }
+        </div>
+      }
     </li>
   }
 </ul>

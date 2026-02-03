@@ -93,14 +93,16 @@ export class SearchForm implements OnInit {
           return;
         }
 
-        if (card && res.length > 1) {
-          this.multiHitError = `Multiple results found (${res.length}). Document ID search must be an exact single match.`;
+        const hit = res?.[0];
+        if (!hit) {
+          this.noHitError = 'No results found.';
           return;
         }
 
-        this.result = res[0];
-        this.found.emit(res[0]);
+        this.result = hit;
+        this.found.emit(hit);
       },
+
       error: () => {
         this.loading = false;
         this.apiError = 'An error occurred while searching. Please try again.';

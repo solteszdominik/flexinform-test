@@ -51,7 +51,6 @@ export class ClientCars implements OnChanges {
       return;
     }
 
-    // 2) ha csak az autoSelectFirst vált true-ra (clientId ugyanaz maradt):
     if (changes['autoSelectFirst'] && this.autoSelectFirst) {
       if (
         this.clientId &&
