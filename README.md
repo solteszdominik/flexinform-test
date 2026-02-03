@@ -28,3 +28,14 @@ Az AI-t összesen körülbelül négy alkalommal használtam:
 - kétszer pedig a keresési funkció hibás működésének feltárásához.
 
 Az AI-t minden esetben segédeszközként, nem pedig kész megoldások átvételére használtam.
+
+## Run with Docker
+
+Build image:
+docker build -t my-app .
+
+Run container:
+docker run --rm -p 8080:80 my-app
+
+Open in browser:
+http://localhost:8080
