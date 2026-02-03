@@ -6,11 +6,13 @@ import {
   input,
   output,
   signal,
+  DestroyRef,
 } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { ApiService } from '../../services/api.service';
 import { Car } from '../../models/car.model';
-import { CommonModule } from '@angular/common';
 
 @Component({
   selector: 'app-client-cars',
@@ -22,6 +24,7 @@ import { CommonModule } from '@angular/common';
 })
 export class ClientCars {
   private api = inject(ApiService);
+  private destroyRef = inject(DestroyRef);
 
   clientId = input.required<number>();
   autoSelectFirst = input(false);
@@ -38,14 +41,17 @@ export class ClientCars {
       this.cars.set([]);
       this.didAutoSelectForClientId.set(null);
 
-      this.api.getClientCars(id).subscribe((cars) => {
-        this.cars.set(cars);
+      this.api
+        .getClientCarsWithLatestService(id)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe((cars) => {
+          this.cars.set(cars);
 
-        if (this.autoSelectFirst() && cars.length > 0 && this.didAutoSelectForClientId() !== id) {
-          this.didAutoSelectForClientId.set(id);
-          this.selectCar(cars[0]);
-        }
-      });
+          if (this.autoSelectFirst() && cars.length > 0 && this.didAutoSelectForClientId() !== id) {
+            this.didAutoSelectForClientId.set(id);
+            this.selectCar(cars[0]);
+          }
+        });
     });
   }
 

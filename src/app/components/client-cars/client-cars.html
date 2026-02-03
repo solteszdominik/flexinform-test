@@ -9,11 +9,14 @@
         @for (car of cars; track car.id) {
           <li>
             <button type="button" (click)="selectCar(car)">{{ car.car_id }}</button>
-            — {{ car.type }} — Registered: {{ car.registered }} — Own brand:
-            {{ car.ownbrand ? 'yes' : 'no' }} — Accidents: {{ car.accidents }}
+            — {{ car.type }} — Registered: ({{ car.registered }}) — Own brand:
+            {{ car.ownbrand ? 'yes' : 'no' }} — Accidents: {{ car.accidents }} - Latest service:
+            {{ car.latest_service?.event }} ({{ car.latest_service?.event_time }})
           </li>
         }
       </ul>
     }
   </div>
+} @else {
+  <div class="latest muted">No service records.</div>
 }

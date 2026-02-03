@@ -24,12 +24,14 @@ import { ServiceLog } from '../models/service-log.model';
 export class ApiService {
   constructor(private http: HttpClient) {}
 
+  // GET /api/clients?page=1&per_page=15
   getClients(page = 1, perPage = 15): Observable<PaginatedResponse<Client>> {
     return this.http.get<PaginatedResponse<Client>>(ENDPOINTS.clients, {
       params: { page, per_page: perPage },
     });
   }
 
+  // POST /api/clients/search
   searchClient(body: ClientSearchRequest): Observable<ClientSearchResult[]> {
     return this.http.post<ClientSearchResult[]>(ENDPOINTS.clientSearch, body);
   }
@@ -48,12 +50,58 @@ export class ApiService {
     );
   }
 
+  // GET /api/clients/{clientId}/cars
   getClientCars(clientId: number): Observable<Car[]> {
     return this.http.get<Car[]>(ENDPOINTS.clientCars(clientId));
   }
 
+  // GET /api/clients/{clientId}/cars/{carId}/services
   getCarServices(clientId: number, carId: string): Observable<ServiceLog[]> {
     return this.http.get<ServiceLog[]>(ENDPOINTS.carServices(clientId, carId));
+  }
+
+  /**
+   * ✅ Cars list enriched with latest service event (max lognumber/log_number)
+   * Requirement:
+   * - show latest (largest log number) service event name and time
+   * - if event_time is empty for "regisztralt", show car.registered instead
+   */
+  getClientCarsWithLatestService(clientId: number): Observable<Car[]> {
+    return this.getClientCars(clientId).pipe(
+      switchMap((cars) => {
+        if (!cars || cars.length === 0) return of([] as Car[]);
+
+        return forkJoin(
+          cars.map((car) =>
+            this.getCarServices(clientId, car.car_id).pipe(
+              map((logs) => this.attachLatestService(car, logs)),
+            ),
+          ),
+        );
+      }),
+    );
+  }
+
+  private attachLatestService(car: Car, logs: ServiceLog[]): Car {
+    if (!logs || logs.length === 0) {
+      return { ...car, latest_service: null };
+    }
+
+    // ✅ pick the latest by max log number
+    // If your backend uses "lognumber" instead of "log_number",
+    // change the two occurrences below to: (a as any).lognumber and (b as any).lognumber
+    const latest = logs.reduce((a, b) => (b.log_number > a.log_number ? b : a));
+
+    const eventTime =
+      latest.event === 'regisztralt' && !latest.event_time ? car.registered : latest.event_time;
+
+    return {
+      ...car,
+      latest_service: {
+        event: latest.event,
+        event_time: eventTime ?? null,
+      },
+    };
   }
 
   private computeSummary(client: Client): Observable<ClientSearchResult> {

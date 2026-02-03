@@ -9,7 +9,7 @@
         @for (l of logs; track l.id) {
           <li>
             <strong>#{{ l.log_number }}</strong>
-            — {{ l.event }} — {{ displayEventTime(l) }} — document: {{ l.document_id }}
+            — {{ l.event }} — ({{ displayEventTime(l) }}) — document: {{ l.document_id }}
           </li>
         }
       </ul>
